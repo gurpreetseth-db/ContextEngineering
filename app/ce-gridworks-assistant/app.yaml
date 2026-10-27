@@ -1,0 +1,10 @@
+command: ['npm', 'run', 'start']
+env:
+  - name: DATABRICKS_VS_INDEX_NAME
+    valueFrom: vector-search-index
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  - name: LAKEBASE_ENDPOINT
+    valueFrom: postgres
+  - name: GATEWAY_MODEL
+    value: system.ai.claude-haiku-5-5

@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Engineering: Session 2: Databricks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* === DATABRICKS PRIMARY PALETTE (from corporate template) === */
+  --db-lava:       #FF3621;  /* Lava — primary brand accent, CTAs, links */
+  --db-lava-light: #FF5F46;  /* Lava light — secondary accent, warm highlights */
+  --db-lava-warm:  #FE6046;  /* Lava warm — softer orange-red from pitch deck */
+  --db-navy:       #1B3139;  /* Navy — dark backgrounds, dark theme base */
+  --db-ink:        #0B2026;  /* Ink — primary text on light backgrounds */
+  --db-teal:       #1B5162;  /* Teal — accent color, subtle emphasis */
+  --db-green:      #00A972;  /* Green — success states, secondary accent */
+  --db-oat:        #F9F7F4;  /* Oat — warm off-white, primary light background */
+  --db-oat-medium: #EEEDE9;  /* Oat Medium — borders, dividers, subtle UI */
+  --db-oat-dark:   #DBD7CE;  /* Oat Dark — stronger borders, card outlines */
+  --db-white:      #FFFFFF;  /* White — pure white for contrast */
+  --db-black:      #000000;  /* Pure black — dramatic dark slides */
+
+  /* === EXTENDED ACCENT PALETTE (from the pitch deck theme) === */
+  --db-burgundy:   #970F29;  /* Deep red — emphasis, alerts, contrast accent */
+  --db-amber:      #FEAB03;  /* Amber/gold — highlights, callouts, warm accent */
+  --db-muted-teal: #618693;  /* Muted teal — subtle accents, secondary info */
+  --db-indigo:     #4259FE;  /* Blue/indigo — links, interactive elements */
+
+  /* === DERIVED / FUNCTIONAL COLORS === */
+  --bg-primary:    var(--db-oat);
+  --bg-secondary:  var(--db-white);
+  --bg-dark:       var(--db-navy);
+  --bg-black:      var(--db-black);
+  --text-primary:  var(--db-ink);
+  --text-secondary: #4A5E68;         /* Ink at ~60% presence */
+  --text-on-dark:  var(--db-white);
+  --accent:        var(--db-lava);
+  --accent-hover:  #E02E1A;          /* Lava darkened for hover states */
+  --accent-glow:   rgba(255, 54, 33, 0.15);
+  --divider:       var(--db-oat-medium);
+}
+
+
+/* Google Fonts link (place in <head>) */
+/* https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=DM+Mono:wght@300;400;500&display=swap */
+
+:root {
+  --font-display: 'DM Sans', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+}
+
+/* Heading hierarchy — ceilings must be high enough for 4K displays */
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.5rem, 4.5vw, 7rem); letter-spacing: -0.02em; line-height: 1.1; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.8rem, 3vw, 4.5rem); letter-spacing: -0.01em; line-height: 1.2; }
+h3 { font-family: var(--font-display); font-weight: 500; font-size: clamp(1.2rem, 2vw, 2.5rem); line-height: 1.3; }
+p, li { font-family: var(--font-body); font-weight: 400; font-size: clamp(1.1rem, 1.5vw, 2rem); line-height: 1.6; }
+code, .mono { font-family: var(--font-mono); font-weight: 400; font-size: 0.9em; }
+
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: clamp(0.75rem, 0.9vw, 1.1rem);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--db-lava);
+  margin-bottom: 0.75rem;
+  display: block;
+}
+.dark-bg .eyebrow { color: var(--db-lava-light); }
+
+
+.lead {
+  font-family: var(--font-body);
+  font-size: clamp(1.2rem, 1.8vw, 2rem);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 80%;
+  margin-bottom: 2rem;
+}
+.dark-bg .lead { color: rgba(255,255,255,0.7); }
+
+
+.accent-line {
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--db-lava), var(--db-lava-warm));
+  border-radius: 2px;
+  margin: 1rem 0 1.5rem;
+}
+.accent-line.wide { width: 120px; }
+.accent-line.center { margin-left: auto; margin-right: auto; }
+
+
+/* Light slide cards */
+.card {
+  padding: 2rem;
+  border-radius: 12px;
+  background: var(--db-white);
+  border: 1px solid var(--db-oat-medium);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+/* Dark slide glass cards */
+.dark-bg .card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  color: white;
+}
+.dark-bg .card:hover {
+  background: rgba(255,255,255,0.09);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.dark-bg .card h3 { color: white; }
+.dark-bg .card p, .dark-bg .card li { color: rgba(255,255,255,0.7); }
+
+
+/* Noise/grain texture overlay — adds photographic feel to dark slides */
+.texture-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  pointer-events: none;
+  z-index: 0;
+}
+.texture-noise .slide-content { position: relative; z-index: 1; }
+
+/* Dot grid pattern — subtle geometric texture for light slides */
+.texture-dots::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  background-image: radial-gradient(circle, var(--db-oat-dark) 0.5px, transparent 0.5px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: 0;
+}
+.texture-dots .slide-content { position: relative; z-index: 1; }
+
+/* Diagonal lines — architectural feel for section dividers */
+.texture-lines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 10px,
+    rgba(255,255,255,0.5) 10px,
+    rgba(255,255,255,0.5) 11px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+.texture-lines .slide-content { position: relative; z-index: 1; }
+
+/* Radial spotlight — draws attention to center content on dark slides */
+.texture-spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.03) 0%, transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+.texture-spotlight .slide-content { position: relative; z-index: 1; }
+
+
+/* Stagger utility — apply to children of card-grid or reveal-stack */
+.stagger > :nth-child(1) { animation-delay: 0s; }
+.stagger > :nth-child(2) { animation-delay: 0.08s; }
+.stagger > :nth-child(3) { animation-delay: 0.16s; }
+.stagger > :nth-child(4) { animation-delay: 0.24s; }
+.stagger > :nth-child(5) { animation-delay: 0.32s; }
+.stagger > :nth-child(6) { animation-delay: 0.4s; }
+
+/* Subtle fade-up for staggered items — only triggers once when slide enters viewport */
+.stagger-fade > * {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: stagger-in 0.5s ease forwards;
+  animation-play-state: paused;
+}
+.slide.visible .stagger-fade > * {
+  animation-play-state: running;
+}
+.stagger-fade > :nth-child(1) { animation-delay: 0.1s; }
+.stagger-fade > :nth-child(2) { animation-delay: 0.2s; }
+.stagger-fade > :nth-child(3) { animation-delay: 0.3s; }
+.stagger-fade > :nth-child(4) { animation-delay: 0.4s; }
+.stagger-fade > :nth-child(5) { animation-delay: 0.5s; }
+.stagger-fade > :nth-child(6) { animation-delay: 0.6s; }
+
+@keyframes stagger-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-fade > * { opacity: 1; transform: none; animation: none; }
+}
+
+
+/* Offset heading — shifts heading left with a wide accent line */
+.offset-heading {
+  padding-left: 2rem;
+  border-left: 4px solid var(--db-lava);
+  max-width: 600px;
+}
+.offset-heading h2 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.1;
+}
+.dark-bg .offset-heading { border-left-color: var(--db-lava-light); }
+
+/* Overlap card — a card that breaks out of its grid row, creating depth */
+.card-overlap {
+  margin-top: -2rem;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+.dark-bg .card-overlap { box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+
+/* Wide-narrow grid — 60/40 split for unequal emphasis */
+.grid-wide-narrow {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 2.5rem;
+  align-items: start;
+  max-width: 100%;
+  margin: 2rem auto;
+}
+.grid-narrow-wide {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 2.5rem;
+  align-items: start;
+  max-width: 100%;
+  margin: 2rem auto;
+}
+
+/* Pull-quote: oversized quote that breaks the content width */
+.pull-quote {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--db-ink);
+  max-width: 80%;
+  position: relative;
+  padding-left: 2rem;
+}
+.pull-quote::before {
+  content: '"';
+  position: absolute;
+  left: -0.5rem;
+  top: -0.5rem;
+  font-size: 5rem;
+  line-height: 1;
+  color: var(--db-lava);
+  opacity: 0.3;
+  font-family: Georgia, serif;
+}
+.dark-bg .pull-quote { color: white; }
+.dark-bg .pull-quote::before { color: var(--db-lava-light); opacity: 0.4; }
+
+/* Stat callout — oversized number that dominates the slide */
+.stat-hero {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(4rem, 10vw, 14rem);
+  line-height: 0.9;
+  color: var(--db-lava);
+  letter-spacing: -0.03em;
+}
+.stat-hero-label {
+  font-family: var(--font-body);
+  font-size: clamp(1.2rem, 1.8vw, 2.2rem);
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+.dark-bg .stat-hero { color: var(--db-lava-light); }
+.dark-bg .stat-hero-label { color: rgba(255,255,255,0.6); }
+
+@media (max-width: 768px) {
+  .grid-wide-narrow, .grid-narrow-wide { grid-template-columns: 1fr; }
+  .pull-quote { font-size: 1.5rem; }
+  .stat-hero { font-size: 4rem; }
+}
+
+
+.slide-footer {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 2rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--db-oat-dark);
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+.dark-bg .slide-footer { color: rgba(255,255,255,0.25); }
+
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.75rem;
+  border-radius: 100px;
+  background: var(--db-oat);
+  color: var(--db-ink);
+  border: 1px solid var(--db-oat-medium);
+}
+.tag.lava { background: rgba(255,54,33,0.1); color: var(--db-lava); border-color: rgba(255,54,33,0.2); }
+.tag.green { background: rgba(0,169,114,0.1); color: #007a53; border-color: rgba(0,169,114,0.2); }
+.tag.teal { background: rgba(27,81,98,0.1); color: var(--db-teal); border-color: rgba(27,81,98,0.2); }
+.tag.amber { background: rgba(254,171,3,0.1); color: #b87800; border-color: rgba(254,171,3,0.2); }
+
+/* Tags on dark slides */
+.dark-bg .tag { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.15); }
+.dark-bg .tag.lava { background: rgba(255,54,33,0.15); color: #ff7a6a; border-color: rgba(255,54,33,0.3); }
+.dark-bg .tag.green { background: rgba(0,169,114,0.15); color: #5cd6a8; border-color: rgba(0,169,114,0.3); }
+.dark-bg .tag.teal { background: rgba(27,81,98,0.2); color: #8ab8c8; border-color: rgba(27,81,98,0.3); }
+.dark-bg .tag.amber { background: rgba(254,171,3,0.15); color: #ffc94d; border-color: rgba(254,171,3,0.3); }
+
+
+.icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  margin-bottom: 1rem;
+}
+.icon-badge.lava { background: rgba(255,54,33,0.1); color: var(--db-lava); }
+.icon-badge.navy { background: rgba(27,49,57,0.1); color: var(--db-navy); }
+.icon-badge.teal { background: rgba(27,81,98,0.1); color: var(--db-teal); }
+.icon-badge.green { background: rgba(0,169,114,0.1); color: var(--db-green); }
+.icon-badge.indigo { background: rgba(66,89,254,0.1); color: var(--db-indigo); }
+.dark-bg .icon-badge.lava { background: rgba(255,54,33,0.15); }
+.dark-bg .icon-badge.navy { background: rgba(255,255,255,0.08); color: white; }
+.dark-bg .icon-badge.teal { background: rgba(27,81,98,0.2); color: #8ab8c8; }
+.dark-bg .icon-badge.green { background: rgba(0,169,114,0.2); color: #5cd6a8; }
+.dark-bg .icon-badge.indigo { background: rgba(66,89,254,0.15); color: #8a9bff; }
+
+
+.slide-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--db-oat-medium);
+  margin: 2rem 0;
+  border: none;
+}
+.dark-bg .slide-divider { background: rgba(255,255,255,0.1); }
+
+
+.db-logo { height: 28px; width: auto; }
+.slide.title-slide .db-logo { height: 36px; }
+
+
+.logo-bar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; }
+.logo { height: 28px; max-height: 28px; width: auto; max-width: 160px; object-fit: contain; display: block; }
+.logo-sep { font-family: var(--font-display); font-size: 1.1rem; font-weight: 300; color: var(--db-oat-dark); user-select: none; line-height: 1; }
+.on-dark .logo-sep, .dark-bg .logo-sep, .teal-bg .logo-sep, .ink-bg .logo-sep { color: rgba(255,255,255,0.3); }
+
+
+.slide-media { width: 100%; max-width: 100%; margin: 1.5rem auto; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.12); }
+.slide-media img { width: 100%; height: auto; display: block; }
+.dark-bg .slide-media, .ink-bg .slide-media, .teal-bg .slide-media { box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+.media-caption { font-family: var(--font-mono); font-size: 0.8rem; text-align: center; color: var(--text-secondary); margin-top: 0.75rem; letter-spacing: 0.03em; }
+.dark-bg .media-caption, .teal-bg .media-caption { color: rgba(255,255,255,0.45); }
+.video-container { position: relative; width: 100%; max-width: 100%; margin: 1.5rem auto; padding-bottom: 50.625%; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.12); background: #000; }
+.dark-bg .video-container, .ink-bg .video-container, .teal-bg .video-container { box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+.video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
+
+.arch-diagram {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 1.5rem auto;
+  border-radius: 12px;
+  border: 1px solid var(--db-oat-medium);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  background: white;
+  padding: 1rem;
+}
+.dark-bg .arch-diagram {
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.03);
+}
+/* Tight variant — no padding, for screenshots */
+.arch-diagram.tight { padding: 0; }
+/* Small variant — constrained width for side-by-side layouts */
+.arch-diagram.small { max-width: 600px; }
+
+
+.image-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+  max-width: 100%;
+  margin: 2rem auto;
+}
+.image-split.image-left { grid-template-columns: 55% 1fr; }
+.image-split.image-right { grid-template-columns: 1fr 55%; }
+.image-split .image-side img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+.dark-bg .image-split .image-side img {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.image-split .text-side h3 { margin-bottom: 1rem; }
+.image-split .text-side ul { padding-left: 1.2em; }
+.image-split .text-side li { margin-bottom: 0.5rem; }
+@media (max-width: 768px) {
+  .image-split, .image-split.image-left, .image-split.image-right {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.image-full {
+  width: 100%;
+  max-width: 100%;
+  margin: 1.5rem auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+}
+.image-full img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.dark-bg .image-full {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+/* Browser chrome mockup frame */
+.image-full.browser-frame {
+  border: 1px solid var(--db-oat-medium);
+  background: var(--db-oat);
+}
+.image-full.browser-frame::before {
+  content: '● ● ●';
+  display: block;
+  padding: 0.5rem 1rem;
+  font-size: 0.5rem;
+  letter-spacing: 0.3em;
+  color: var(--db-oat-dark);
+  background: var(--db-oat);
+  border-bottom: 1px solid var(--db-oat-medium);
+}
+.dark-bg .image-full.browser-frame {
+  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+}
+.dark-bg .image-full.browser-frame::before {
+  color: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.05);
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+
+
+.slide.image-bg {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+/* Dark scrim overlay — ensures text readability over any image */
+.image-bg-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11,32,38,0.7) 0%, rgba(11,32,38,0.85) 100%);
+  z-index: 0;
+}
+.image-bg .slide-content { position: relative; z-index: 1; }
+
+/* Lighter scrim variant for less dramatic darkening */
+.image-bg-scrim.light {
+  background: linear-gradient(180deg, rgba(11,32,38,0.4) 0%, rgba(11,32,38,0.65) 100%);
+}
+/* Bottom-heavy scrim — clear image on top, dark text area at bottom */
+.image-bg-scrim.bottom {
+  background: linear-gradient(180deg, rgba(11,32,38,0.1) 0%, rgba(11,32,38,0.85) 70%);
+}
+
+
+.image-gallery {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 100%;
+  margin: 2rem auto;
+}
+.image-gallery.cols-2 { grid-template-columns: 1fr 1fr; }
+.image-gallery.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.image-gallery figure {
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border: 1px solid var(--db-oat-medium);
+}
+.dark-bg .image-gallery figure {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  border-color: rgba(255,255,255,0.1);
+}
+.image-gallery img { width: 100%; height: auto; display: block; }
+.image-gallery figcaption {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary);
+  background: var(--db-oat);
+}
+.dark-bg .image-gallery figcaption {
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.03);
+}
+@media (max-width: 768px) {
+  .image-gallery.cols-2, .image-gallery.cols-3 { grid-template-columns: 1fr; }
+}
+
+
+.diagram { display: flex; flex-direction: column; align-items: center; gap: 1rem; max-width: 100%; margin: 2rem auto; }
+.diagram-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.diagram-node { padding: 1rem 1.5rem; border-radius: 10px; font-family: var(--font-body); font-weight: 500; font-size: 1.05rem; text-align: center; min-width: 140px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+.diagram-node:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+.diagram-node.primary { background: var(--db-lava); color: white; }
+.diagram-node.secondary { background: var(--db-navy); color: white; }
+.diagram-node.accent { background: var(--db-teal); color: white; }
+.diagram-node.green { background: var(--db-green); color: white; }
+.diagram-node.amber { background: var(--db-amber); color: var(--db-ink); }
+.diagram-node.indigo { background: var(--db-indigo); color: white; }
+.diagram-node.outline { background: transparent; border: 2px solid var(--db-oat-dark); color: var(--db-ink); }
+.dark-bg .diagram-node.outline { border-color: rgba(255,255,255,0.3); color: white; }
+.diagram-arrow { font-size: 1.5rem; color: var(--db-oat-dark); font-family: var(--font-body); line-height: 1; }
+.dark-bg .diagram-arrow { color: rgba(255,255,255,0.4); }
+.diagram-connector { width: 2px; height: 2rem; background: var(--db-oat-dark); position: relative; }
+.diagram-connector::after { content: '▼'; position: absolute; bottom: -0.6rem; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: var(--db-oat-dark); }
+.dark-bg .diagram-connector, .dark-bg .diagram-connector::after { background: rgba(255,255,255,0.3); color: rgba(255,255,255,0.4); }
+
+
+.comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 100%; margin: 2rem auto; }
+.comparison-card { padding: 2rem; border-radius: 12px; transition: transform 0.3s ease; }
+.comparison-card:hover { transform: translateY(-3px); }
+.comparison-card.before { background: rgba(151, 15, 41, 0.08); border: 1px solid rgba(151, 15, 41, 0.2); }
+.comparison-card.after { background: rgba(0, 169, 114, 0.08); border: 1px solid rgba(0, 169, 114, 0.2); }
+.comparison-card h3 { font-size: 1.2rem; margin-bottom: 0.75rem; }
+.comparison-card.before h3 { color: var(--db-burgundy); }
+.comparison-card.after h3 { color: var(--db-green); }
+.dark-bg .comparison-card.before { background: rgba(151, 15, 41, 0.2); border-color: rgba(151, 15, 41, 0.4); }
+.dark-bg .comparison-card.after { background: rgba(0, 169, 114, 0.2); border-color: rgba(0, 169, 114, 0.4); }
+.dark-bg .comparison-card.before h3 { color: #ff6b7a; }
+.dark-bg .comparison-card.after h3 { color: #5cd6a8; }
+
+
+.reveal-stack { display: flex; flex-direction: column; gap: 1rem; max-width: 100%; margin: 2rem auto; }
+.reveal-item { opacity: 1; transform: none; padding: 1.25rem 1.5rem; border-radius: 10px; background: var(--db-white); border: 1px solid var(--db-oat-medium); display: flex; align-items: center; gap: 1rem; }
+.reveal-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; color: white; }
+.dark-bg .reveal-item { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+
+
+.counter-group { display: flex; gap: 3rem; justify-content: center; flex-wrap: wrap; margin: 2rem 0; }
+.counter-item { text-align: center; }
+.counter-value { font-family: var(--font-display); font-weight: 700; font-size: clamp(3rem, 8vw, 6rem); line-height: 1; color: var(--db-lava); }
+.counter-label { font-family: var(--font-body); font-size: 1.1rem; color: var(--text-secondary); margin-top: 0.5rem; }
+.dark-bg .counter-label { color: rgba(255,255,255,0.6); }
+
+
+@keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-12px) rotate(1deg); } }
+@keyframes pulse-glow { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.05); } }
+.float { animation: float 4s ease-in-out infinite; }
+.float-delay-1 { animation-delay: 0.5s; }
+.float-delay-2 { animation-delay: 1s; }
+.pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+/* All content visible by default — no entrance animations */
+.anim-slide-left, .anim-slide-right, .anim-fade-up, .anim-fade-in, .anim-scale-in { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .float, .pulse-glow { animation: none; } }
+
+
+.timeline { position: relative; max-width: 100%; margin: 2rem auto; padding-left: 2rem; }
+.timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--db-oat-dark); }
+.dark-bg .timeline::before { background: rgba(255,255,255,0.2); }
+.timeline-item { position: relative; padding: 0 0 2rem 2rem; opacity: 1; transform: none; }
+.timeline-item::before { content: ''; position: absolute; left: -0.45rem; top: 0.25rem; width: 12px; height: 12px; border-radius: 50%; background: var(--db-lava); border: 2px solid var(--db-oat); }
+.dark-bg .timeline-item::before { border-color: var(--db-navy); }
+.timeline-item h4 { font-weight: 700; margin-bottom: 0.25rem; }
+.timeline-item p { color: var(--text-secondary); font-size: 1.05rem; }
+.dark-bg .timeline-item p { color: rgba(255,255,255,0.6); }
+
+
+.bar-chart { display: flex; align-items: flex-end; gap: 1.5rem; justify-content: center; height: 250px; margin: 2rem auto; max-width: 100%; }
+.bar-group { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; flex: 1; }
+.bar { width: 100%; border-radius: 6px 6px 0 0; height: var(--bar-height); min-width: 60px; }
+.bar.lava { background: var(--db-lava); }
+.bar.teal { background: var(--db-teal); }
+.bar.green { background: var(--db-green); }
+.bar.amber { background: var(--db-amber); }
+.bar.indigo { background: var(--db-indigo); }
+.bar-label { font-size: 0.9rem; color: var(--text-secondary); text-align: center; }
+.bar-value { font-weight: 700; font-size: 1rem; }
+.dark-bg .bar-label { color: rgba(255,255,255,0.6); }
+
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  max-width: 100%;
+  margin: 2rem auto;
+}
+.kpi-card {
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: var(--db-white);
+  border: 1px solid var(--db-oat-medium);
+  text-align: center;
+}
+.dark-bg .kpi-card {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.kpi-label {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+.dark-bg .kpi-label { color: rgba(255,255,255,0.5); }
+.kpi-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  color: var(--db-ink);
+  margin-bottom: 0.5rem;
+}
+.dark-bg .kpi-value { color: white; }
+.kpi-trend {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 100px;
+}
+.kpi-trend.up {
+  color: #007a53;
+  background: rgba(0,169,114,0.1);
+}
+.kpi-trend.down {
+  color: var(--db-burgundy);
+  background: rgba(151,15,41,0.1);
+}
+.kpi-trend.neutral {
+  color: var(--text-secondary);
+  background: var(--db-oat);
+}
+.dark-bg .kpi-trend.up { color: #5cd6a8; background: rgba(0,169,114,0.15); }
+.dark-bg .kpi-trend.down { color: #ff6b7a; background: rgba(151,15,41,0.2); }
+.dark-bg .kpi-trend.neutral { color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.08); }
+
+
+.donut-chart {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  /* Override --donut-pct and --donut-color via inline style */
+  background: conic-gradient(
+    var(--donut-color, var(--db-lava)) 0% var(--donut-pct, 75%),
+    var(--db-oat-medium) var(--donut-pct, 75%) 100%
+  );
+}
+.dark-bg .donut-chart {
+  background: conic-gradient(
+    var(--donut-color, var(--db-lava-light)) 0% var(--donut-pct, 75%),
+    rgba(255,255,255,0.1) var(--donut-pct, 75%) 100%
+  );
+}
+.donut-chart::after {
+  content: '';
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: var(--db-oat);
+  position: absolute;
+}
+.dark-bg .donut-chart::after { background: var(--db-navy); }
+.slide-ink .donut-chart::after { background: var(--db-ink); }
+.donut-center {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+.donut-center .kpi-value { font-size: clamp(1.5rem, 3vw, 2.2rem); }
+.donut-center .kpi-label { font-size: 0.65rem; margin: 0; }
+
+.donut-group {
+  display: flex;
+  gap: 3rem;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin: 2rem auto;
+}
+.donut-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.donut-item-label {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 140px;
+}
+.dark-bg .donut-item-label { color: rgba(255,255,255,0.6); }
+
+
+.progress-metric {
+  width: 100%;
+  margin: 0.75rem 0;
+}
+.progress-metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.4rem;
+  gap: 1rem;
+}
+.progress-metric-label {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--db-ink);
+}
+.dark-bg .progress-metric-label { color: white; }
+.progress-metric-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--db-ink);
+  white-space: nowrap;
+}
+.dark-bg .progress-metric-value { color: white; }
+.progress-track {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--db-oat-medium);
+  overflow: hidden;
+}
+.dark-bg .progress-track { background: rgba(255,255,255,0.1); }
+.progress-fill {
+  height: 100%;
+  border-radius: 5px;
+  width: var(--progress, 0%);
+  background: var(--db-lava);
+  transition: width 1s ease;
+}
+.progress-fill.teal { background: var(--db-teal); }
+.progress-fill.green { background: var(--db-green); }
+.progress-fill.amber { background: var(--db-amber); }
+.progress-fill.indigo { background: var(--db-indigo); }
+
+
+.sparkline {
+  display: inline-block;
+  width: 80px;
+  height: 24px;
+  position: relative;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+}
+.sparkline-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,169,114,0.3) 0%, transparent 100%);
+  /* Override --spark-path with clip-path polygon points matching your data */
+  clip-path: var(--spark-path);
+}
+.sparkline-line {
+  position: absolute;
+  inset: 0;
+  border-bottom: 2px solid var(--db-green);
+  /* Same clip path, but only the top edge shows as a line */
+  clip-path: var(--spark-path);
+}
+.sparkline.down .sparkline-fill {
+  background: linear-gradient(180deg, rgba(151,15,41,0.3) 0%, transparent 100%);
+}
+.sparkline.down .sparkline-line { border-bottom-color: var(--db-burgundy); }
+
+/* Base slide system (written for this kit; component styles come from the Databricks brand system in brand.css) */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: auto; overflow-y: scroll; scroll-snap-type: y mandatory; }
+body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.5rem, 4.5vw, 7rem); letter-spacing: -0.02em; line-height: 1.08; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.8rem, 3vw, 4.5rem); letter-spacing: -0.01em; line-height: 1.15; }
+h3 { font-family: var(--font-display); font-weight: 500; font-size: clamp(1.1rem, 1.6vw, 2.2rem); line-height: 1.3; }
+h4 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1rem, 1.3vw, 1.7rem); }
+p, li { font-family: var(--font-body); font-weight: 400; font-size: clamp(1rem, 1.3vw, 1.7rem); line-height: 1.5; }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+
+.slide { height: 100vh; height: 100dvh; scroll-snap-align: start; padding: clamp(1.5rem, 3vw, 4rem) clamp(2rem, 5vw, 6rem); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow-y: auto; }
+.slide-content { width: 100%; max-width: 1500px; margin: 0 auto; }
+.slide-dark  { background: var(--db-navy);  color: #fff; }
+.slide-ink   { background: var(--db-ink);   color: #fff; }
+.slide-light { background: var(--db-oat);   color: var(--db-ink); }
+.slide-white { background: #fff;            color: var(--db-ink); }
+.dark-bg h1, .dark-bg h2, .dark-bg h3, .dark-bg h4, .dark-bg strong { color: #fff; }
+.dark-bg p, .dark-bg li, .dark-bg td, .dark-bg th, .dark-bg dd, .dark-bg dt { color: rgba(255,255,255,0.82); }
+.dark-bg code { color: #ffc94d; }
+h1 .hl, h2 .hl { color: var(--db-lava); }
+.dark-bg h1 .hl, .dark-bg h2 .hl { color: var(--db-lava-light); }
+
+.progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 100; transition: width 0.3s ease; }
+.nav-dots { position: fixed; right: 1rem; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 100; }
+.nav-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(120,130,135,0.55); border: none; cursor: pointer; padding: 0; transition: all 0.3s ease; }
+.nav-dot.active { background: var(--accent); transform: scale(1.5); }
+@media (max-width: 768px) { .nav-dots { display: none; } .slide { padding: 1.5rem; } }
+
+/* Layout helpers */
+.card-grid { display: grid; gap: 1.25rem; margin-top: 1.75rem; }
+.card-grid.cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.card-grid.cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card-grid.cols-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+.card-grid.cols-5 { grid-template-columns: repeat(5, minmax(0,1fr)); }
+@media (max-width: 900px) { .card-grid.cols-3, .card-grid.cols-4, .card-grid.cols-5 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+.card h3 { margin-bottom: 0.4rem; }
+.card p { font-size: clamp(0.95rem, 1.15vw, 1.5rem); }
+.card .kicker { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--db-lava); margin-bottom: 0.4rem; display: block; }
+.dark-bg .card .kicker { color: var(--db-lava-light); }
+.two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 2.5rem; align-items: start; margin-top: 1.5rem; }
+.rows { margin-top: 1.5rem; border-top: 1px solid var(--db-oat-dark); }
+.rows .row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.5fr); gap: 1.5rem; padding: 0.7rem 0; border-bottom: 1px solid var(--db-oat-dark); align-items: baseline; }
+.rows .row b { font-weight: 700; }
+.rows.three .row { grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr); }
+.rows .row.head { font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); }
+.dark-bg .rows, .dark-bg .rows .row { border-color: rgba(255,255,255,0.15); }
+.dark-bg .rows .row.head { color: rgba(255,255,255,0.6); }
+.rows .row > * { font-size: clamp(0.95rem, 1.2vw, 1.55rem); line-height: 1.4; }
+.code { font-family: var(--font-mono); font-size: clamp(0.85rem, 1.05vw, 1.3rem); background: var(--db-ink); color: #e8eef0; border-radius: 10px; padding: 1.1rem 1.4rem; margin-top: 1.25rem; line-height: 1.55; white-space: pre-wrap; }
+.dark-bg .code { background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12); }
+.code .k { color: #ffc94d; } .code .g { color: #5cd6a8; } .code .r { color: #ff7a6a; } .code .m { color: #8ab8c8; }
+
+.flow { display: flex; align-items: stretch; gap: 0.6rem; margin-top: 1.75rem; flex-wrap: wrap; }
+.flow .step { flex: 1 1 8rem; background: #fff; border: 1px solid var(--db-oat-dark); border-radius: 10px; padding: 0.9rem 1rem; position: relative; min-width: 8rem; }
+.flow .step b { display: block; font-family: var(--font-mono); font-size: 0.78rem; color: var(--db-lava); letter-spacing: 0.06em; margin-bottom: 0.25rem; }
+.flow .step span { font-size: clamp(0.9rem, 1.1vw, 1.4rem); line-height: 1.35; color: var(--db-ink); }
+.dark-bg .flow .step { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.18); }
+.dark-bg .flow .step b { color: var(--db-lava-light); } .dark-bg .flow .step span { color: #fff; }
+
+.hbars { margin-top: 1.5rem; display: grid; gap: 0.7rem; }
+.hbar { display: grid; grid-template-columns: 15rem minmax(0,1fr) 3.4rem; gap: 1rem; align-items: center; }
+.hbar .lbl { font-size: clamp(0.9rem, 1.1vw, 1.4rem); } .hbar .val { font-family: var(--font-mono); text-align: right; }
+.hbar .track { height: 16px; background: var(--db-oat-medium); border-radius: 8px; overflow: hidden; }
+.hbar .fill { height: 100%; width: var(--w); background: var(--db-teal); border-radius: 8px; }
+.hbar.hot .fill { background: var(--db-lava); } .hbar.good .fill { background: var(--db-green); }
+.dark-bg .hbar .track { background: rgba(255,255,255,0.12); } .dark-bg .hbar .fill { background: #8ab8c8; }
+.dark-bg .hbar.hot .fill { background: var(--db-lava-light); } .dark-bg .hbar.good .fill { background: #5cd6a8; }
+
+.stat-pair { display: flex; align-items: baseline; gap: 1.2rem; flex-wrap: wrap; }
+.stat-pair .big { font-size: clamp(3.5rem, 8vw, 9rem); font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
+.stat-pair .arrow { font-size: clamp(2rem, 4vw, 5rem); color: var(--db-lava); }
+.dark-bg .stat-pair .arrow { color: var(--db-lava-light); }
+.stat-pair .big.bad { color: var(--db-burgundy); } .dark-bg .stat-pair .big.bad { color: #ff7a6a; }
+.stat-pair .big.good { color: var(--db-green); } .dark-bg .stat-pair .big.good { color: #5cd6a8; }
+.caption { font-size: clamp(0.95rem, 1.15vw, 1.5rem); color: var(--text-secondary); margin-top: 0.75rem; max-width: 60ch; }
+.dark-bg .caption { color: rgba(255,255,255,0.7); }
+.note-tag { margin-top: 1.25rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary); }
+.dark-bg .note-tag { color: rgba(255,255,255,0.6); }
+.lab-meta { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 1rem; }
+.checklist { list-style: none; margin-top: 1.25rem; display: grid; gap: 0.6rem; }
+.checklist li { padding-left: 1.7rem; position: relative; } .checklist li::before { content: ''; position: absolute; left: 0; top: 0.55em; width: 0.9rem; height: 0.9rem; border: 2px solid var(--db-lava); border-radius: 3px; }
+.dark-bg .checklist li::before { border-color: var(--db-lava-light); }
+.logo-row { margin-bottom: 2rem; } .logo-row svg { height: 34px; width: auto; }
+.slide-footer { position: absolute; bottom: 1rem; left: clamp(2rem,5vw,6rem); right: clamp(2rem,5vw,6rem); display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.72rem; color: rgba(11,32,38,0.55); }
+.dark-bg .slide-footer { color: rgba(255,255,255,0.5); }
+
+/* Speaker notes overlay: press N */
+#notes { position: fixed; left: 0; right: 0; bottom: 0; max-height: 45vh; overflow: auto; background: rgba(11,32,38,0.96); color: #fff; padding: 1.2rem 2rem; z-index: 200; display: none; border-top: 3px solid var(--db-lava); }
+#notes.on { display: block; } #notes h5 { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: #ff7a6a; margin-bottom: 0.5rem; }
+#notes p { color: #fff; font-size: 1.05rem; line-height: 1.55; max-width: 110ch; }
+aside.notes { display: none; }
+@media print { .nav-dots, .progress-bar, #notes { display: none !important; } .slide { height: 100vh; break-after: page; overflow: visible; } html { scroll-snap-type: none; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Accessibility overrides (AA contrast for SMALL text). Brand Lava #FF3621 stays for large display text,
+   accent lines and big numbers; small red text uses a darker red on light and a lighter coral on dark. */
+.eyebrow, .card .kicker, .flow .step b { color: #C92A16; }
+.dark-bg .eyebrow, .dark-bg .card .kicker, .dark-bg .flow .step b { color: #FF8C7A; }
+.tag.lava { color: #A81F0E; }
+.dark-bg .tag.lava { color: #FF9A8B; }
+.slide-footer { color: rgba(11, 32, 38, 0.72); }
+.dark-bg .slide-footer { color: rgba(255, 255, 255, 0.72); }
+.note-tag, .caption { color: #3F545E; }
+.dark-bg .note-tag, .dark-bg .caption { color: rgba(255, 255, 255, 0.78); }
+
+/* List geometry: keep bullets inside the content edge */
+.slide-content ul, .slide-content ol { padding-left: 1.25rem; }
+.slide-content ul { list-style: disc; } .slide-content ol { list-style: decimal; }
+.slide-content ul.checklist { list-style: none; padding-left: 0; }
+.slide-content li + li { margin-top: 0.3rem; }
+
+/* Labelled big numbers: every figure says what it is */
+.stat-col { display: flex; flex-direction: column; gap: 0.35rem; }
+.stat-col .sub { font-family: var(--font-mono); font-size: clamp(0.8rem, 1vw, 1.2rem); letter-spacing: 0.04em; text-transform: uppercase; color: #3F545E; max-width: 22ch; line-height: 1.35; }
+.dark-bg .stat-col .sub { color: rgba(255,255,255,0.78); }
+
+</style>
+</head>
+<body>
+<div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+<nav class="nav-dots" aria-label="Slide navigation"></nav>
+<section class="slide slide-dark dark-bg title-slide texture-noise" aria-label="Slide 1: Retrieval, memory and tools"><div class="slide-content"><div class="logo-row"><svg class="db-logo" viewBox="0 0 713 113" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Databricks">
+<g clip-path="url(#clip0_on_dark)">
+<path d="M98.9 46.5996L52.3 72.8996L2.4 44.7996L0 46.0996V66.4996L52.3 95.8996L98.9 69.6996V80.4996L52.3 106.8L2.4 78.6996L0 79.9996V83.4996L52.3 112.9L104.5 83.4996V63.0996L102.1 61.7996L52.3 89.7996L5.6 63.5996V52.7996L52.3 78.9996L104.5 49.5996V29.4996L101.9 27.9996L52.3 55.8996L8 31.0996L52.3 6.19961L88.7 26.6996L91.9 24.8996V22.3996L52.3 0.0996094L0 29.4996V32.6996L52.3 62.0996L98.9 35.7996V46.5996Z" fill="#FF3621"/>
+<path d="M202.2 96.1994V6.39941H188.4V39.9994C188.4 40.4994 188.1 40.8994 187.6 41.0994C187.1 41.2994 186.6 41.0994 186.3 40.7994C181.6 35.2994 174.3 32.1994 166.3 32.1994C149.2 32.1994 135.8 46.5994 135.8 64.9994C135.8 73.9994 138.9 82.2994 144.6 88.3994C150.3 94.4994 158 97.7994 166.3 97.7994C174.2 97.7994 181.5 94.4994 186.3 88.7994C186.6 88.3994 187.2 88.2994 187.6 88.3994C188.1 88.5994 188.4 88.9994 188.4 89.4994V96.1994H202.2ZM169.3 85.2994C158.3 85.2994 149.7 76.3994 149.7 64.9994C149.7 53.5994 158.3 44.6994 169.3 44.6994C180.3 44.6994 188.9 53.5994 188.9 64.9994C188.9 76.3994 180.3 85.2994 169.3 85.2994Z" fill="white"/>
+<path d="M276 96.0996V33.6996H262.3V39.9996C262.3 40.4996 262 40.8996 261.5 41.0996C261 41.2996 260.5 41.0996 260.2 40.6996C255.6 35.1996 248.4 32.0996 240.2 32.0996C223.1 32.0996 209.7 46.4996 209.7 64.8996C209.7 83.2996 223.1 97.6996 240.2 97.6996C248.1 97.6996 255.4 94.3996 260.2 88.5996C260.5 88.1996 261.1 88.0996 261.5 88.1996C262 88.3996 262.3 88.7996 262.3 89.2996V96.0996H276ZM243.3 85.2996C232.3 85.2996 223.7 76.3996 223.7 64.9996C223.7 53.5996 232.3 44.6996 243.3 44.6996C254.3 44.6996 262.9 53.5996 262.9 64.9996C262.9 76.3996 254.3 85.2996 243.3 85.2996Z" fill="white"/>
+<path d="M314.4 97.1994C318.8 97.1994 322.7 96.7994 324.9 96.4994V84.4994C323.1 84.6994 319.9 84.8994 318 84.8994C312.4 84.8994 308.1 83.8994 308.1 71.7994V46.0994C308.1 45.3994 308.6 44.8994 309.3 44.8994H322.8V33.5994H309.3C308.6 33.5994 308.1 33.0994 308.1 32.3994V14.3994H294.3V32.4994C294.3 33.1994 293.8 33.6994 293.1 33.6994H283.5V44.9994H293.1C293.8 44.9994 294.3 45.4994 294.3 46.1994V75.2994C294.3 97.1994 308.9 97.1994 314.4 97.1994Z" fill="white"/>
+<path d="M393.3 96.1996V33.6996H379.6V39.9996C379.6 40.4996 379.3 40.8996 378.8 41.0996C378.3 41.2996 377.8 41.0996 377.5 40.6996C372.9 35.1996 365.7 32.0996 357.5 32.0996C340.3 32.0996 327 46.4996 327 64.9996C327 83.4996 340.4 97.7996 357.5 97.7996C365.4 97.7996 372.7 94.4996 377.5 88.6996C377.8 88.2996 378.4 88.1996 378.8 88.2996C379.3 88.4996 379.6 88.8996 379.6 89.3996V96.1996H393.3ZM360.6 85.2996C349.6 85.2996 341 76.3996 341 64.9996C341 53.5996 349.6 44.6996 360.6 44.6996C371.6 44.6996 380.2 53.5996 380.2 64.9996C380.2 76.3996 371.6 85.2996 360.6 85.2996Z" fill="white"/>
+<path d="M418.4 88.7994C418.5 88.7994 418.7 88.6994 418.8 88.6994C419.1 88.6994 419.5 88.8994 419.7 89.0994C424.4 94.5994 431.7 97.6994 439.7 97.6994C456.8 97.6994 470.2 83.2994 470.2 64.8994C470.2 55.8994 467.1 47.5994 461.4 41.4994C455.7 35.3994 448 32.0994 439.7 32.0994C431.8 32.0994 424.5 35.3994 419.7 41.0994C419.4 41.4994 418.9 41.5994 418.4 41.4994C417.9 41.2994 417.6 40.8994 417.6 40.3994V6.39941H403.8V96.1994H417.6V89.8994C417.6 89.3994 417.9 88.9994 418.4 88.7994ZM417 64.9994C417 53.5994 425.6 44.6994 436.6 44.6994C447.6 44.6994 456.2 53.5994 456.2 64.9994C456.2 76.3994 447.6 85.2994 436.6 85.2994C425.6 85.2994 417 76.2994 417 64.9994Z" fill="white"/>
+<path d="M510.1 46.4994C511.4 46.4994 512.6 46.5994 513.4 46.7994V32.5994C512.9 32.4994 512 32.3994 511.1 32.3994C503.9 32.3994 497.3 36.0994 493.8 41.9994C493.5 42.4994 493 42.6994 492.5 42.4994C492 42.3994 491.6 41.8994 491.6 41.3994V33.6994H477.9V96.2994H491.7V68.6994C491.7 54.9994 498.7 46.4994 510.1 46.4994Z" fill="white"/>
+<path d="M536.1 33.6992H522.1V96.2992H536.1V33.6992Z" fill="white"/>
+<path d="M528.9 6.49902C524.2 6.49902 520.4 10.299 520.4 14.999C520.4 19.699 524.2 23.499 528.9 23.499C533.6 23.499 537.4 19.699 537.4 14.999C537.4 10.299 533.6 6.49902 528.9 6.49902Z" fill="white"/>
+<path d="M577.1 32.0996C557.9 32.0996 544 45.8996 544 64.9996C544 74.2996 547.3 82.5996 553.2 88.5996C559.2 94.5996 567.6 97.8996 577 97.8996C584.8 97.8996 590.8 96.3996 602.2 87.9996L594.3 79.6996C588.7 83.3996 583.5 85.1996 578.4 85.1996C566.8 85.1996 558.1 76.4996 558.1 64.9996C558.1 53.4996 566.8 44.7996 578.4 44.7996C583.9 44.7996 589 46.5996 594.1 50.2996L602.9 41.9996C592.6 33.1996 583.3 32.0996 577.1 32.0996Z" fill="white"/>
+<path d="M626.5 68.699C626.7 68.499 627 68.399 627.3 68.399H627.4C627.7 68.399 628 68.599 628.3 68.799L650.4 96.199H667.4L638.8 61.599C638.4 61.099 638.4 60.399 638.9 59.999L665.2 33.699H648.3L625.6 56.499C625.3 56.799 624.8 56.899 624.3 56.799C623.9 56.599 623.6 56.199 623.6 55.699V6.49902H609.7V96.299H623.5V71.899C623.5 71.599 623.6 71.199 623.9 70.999L626.5 68.699Z" fill="white"/>
+<path d="M689.9 97.799C701.2 97.799 712.7 90.899 712.7 77.799C712.7 69.199 707.3 63.299 696.3 59.699L688.8 57.199C683.7 55.499 681.3 53.099 681.3 49.799C681.3 45.999 684.7 43.399 689.5 43.399C694.1 43.399 698.2 46.399 700.8 51.599L711.9 45.599C707.8 37.199 699.3 31.999 689.5 31.999C677.1 31.999 668.1 39.999 668.1 50.899C668.1 59.599 673.3 65.399 684 68.799L691.7 71.299C697.1 72.999 699.4 75.199 699.4 78.699C699.4 83.999 694.5 85.899 690.3 85.899C684.7 85.899 679.7 82.299 677.3 76.399L666 82.399C669.7 91.899 678.8 97.799 689.9 97.799Z" fill="white"/>
+</g>
+<defs><clipPath id="clip0_on_dark"><rect width="712.8" height="113" fill="white"/></clipPath></defs>
+</svg></div><span class="eyebrow">Session 2 · Retrieval, memory, tools, compaction</span><h1>Retrieval, memory and tools</h1><div class="accent-line wide"></div><p class="lead">Governed retrieval, durable state, and compaction</p><p class="note-tag">ANZ C&amp;SI partner enablement · Session 2 of 3 · 3.5 hours</p></div><aside class="notes">Recap Session 1 in two sentences: context fails four ways, and governance decides what the agent may see. Today is how information gets in, how it persists, and how it is shrunk.</aside></section>
+<section class="slide slide-light" aria-label="Slide 2: Retrieve before generating, or as you go"><div class="slide-content"><span class="eyebrow">Retrieval design</span><h2>Retrieve before generating, or as you go</h2><div class="accent-line"></div><p class="lead">Use semantic search to discover and structured queries to verify. Hybrid is common.</p><div class="card-grid cols-2"><div class="card"><span class="kicker">Pre-inference</span><h3>Load a small, predictable set</h3><p>Simpler to bound and test. Wastes context if loaded speculatively.</p></div><div class="card"><span class="kicker">Just in time</span><h3>Fetch as the task unfolds</h3><p>Adapts to intermediate results. Needs reliable tool choice.</p></div></div><div class="lab-meta"><span class="tag teal">Semantic: meaning and similarity</span><span class="tag lava">Structured: ids, ranges, joins</span></div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>2</span></div><aside class="notes">Domain 3 and 4. Pre-inference retrieval is embedding-based and up front; just-in-time retrieval is tool calls and dynamic queries. Exact predicates (ids, dates, statuses, aggregations) are structured work; fuzzy 'similar to' is semantic.</aside></section>
+<section class="slide slide-white" aria-label="Slide 3: Retrieval is a pipeline you govern"><div class="slide-content"><span class="eyebrow">The pipeline</span><h2>Retrieval is a pipeline you govern</h2><div class="accent-line"></div><div class="flow"><div class="step"><b>01</b><span>Curate authoritative sources</span></div><div class="step"><b>02</b><span>Chunk with stable ids and metadata</span></div><div class="step"><b>03</b><span>Embed and index</span></div><div class="step"><b>04</b><span>Retrieve candidates</span></div><div class="step"><b>05</b><span>Filter by authority and region</span></div><div class="step"><b>06</b><span>Inject only the strongest evidence</span></div><div class="step"><b>07</b><span>Answer with citations</span></div><div class="step"><b>08</b><span>Trace and evaluate</span></div></div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>3</span></div><aside class="notes">Walk the eight steps. Stress step 5: authority and permission are enforced in the index query, before the model sees anything. Diagnosis order when quality is poor: authority and permissions, freshness, metadata, query and filters, chunking, embeddings, candidates, injection, evaluation coverage.</aside></section>
+<section class="slide slide-light" aria-label="Slide 4: Choose the split from structure and query type"><div class="slide-content"><span class="eyebrow">Chunking</span><h2>Choose the split from structure and query type</h2><div class="accent-line"></div><div class="rows"><div class="row head"><span>Situation</span><span>Start with</span></div><div class="row"><span>Stable headings</span><span>Structure-aware chunks</span></div><div class="row"><span>Mixed length, weak structure</span><span>Recursive split, 512 to 1,024 tokens, 10 to 15% overlap*</span></div><div class="row"><span>Tables and records</span><span>Row or entity chunks with schema context</span></div><div class="row"><span>Narrow lookups</span><span>Smaller chunks</span></div><div class="row"><span>Broad synthesis</span><span>Larger or parent-child chunks</span></div></div><p class="note-tag">*The exam answer for that scenario, not a universal constant.</p></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>4</span></div><aside class="notes">Do not present one chunk size as universal. The 512 to 1,024 token and 10 to 15% overlap figures are the keyed answer for the exam's mixed-length wiki scenario.</aside></section>
+<section class="slide slide-dark dark-bg" aria-label="Slide 5: Where you split decides what the agent knows"><div class="slide-content"><span class="eyebrow">Measured in Lab 3</span><h2>Where you split decides what the agent knows</h2><div class="stat-pair"><div class="stat-col"><span class="big bad">51</span><span class="sub">Chunks: sentence splitting</span></div><span class="arrow">→</span><div class="stat-col"><span class="big good">12</span><span class="sub">Chunks: merged sections</span></div></div><p class="caption">Chunks per corpus: sentence splitting versus merged sections. Only merged chunks kept the witness rule with its steps.</p></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>5</span></div><aside class="notes">Heading-based splitting puts the witness requirement (under Conditions) in a different chunk from the isolation steps, so a query about the steps retrieves them without the safety condition. Only the merged strategy keeps both. Let learners find this themselves in the stretch step.</aside></section>
+<section class="slide slide-light" aria-label="Slide 6: A stale index has a minimal fix"><div class="slide-content"><span class="eyebrow">Freshness</span><h2>A stale index has a minimal fix</h2><div class="accent-line"></div><div class="card-grid cols-3"><div class="card"><span class="kicker">Delta Sync · triggered</span><h3>Sync after ingestion</h3><p>Right when scheduled freshness is enough.</p></div><div class="card"><span class="kicker">Delta Sync · continuous</span><h3>Only for low latency</h3><p>Justified by a real latency requirement.</p></div><div class="card"><span class="kicker">Direct access</span><h3>Your app owns upserts</h3><p>Use when you manage records, not a Delta source.</p></div></div><p class="caption">Stale after a nightly refresh? Sync after ingestion. Do not rebuild. Do not go continuous.</p></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>6</span></div><aside class="notes">A favourite exam item. The lab updates a source row, shows the triggered index is stale, then asks which of four fixes is minimal. Make learners write why the other three are wrong for a nightly requirement.</aside></section>
+<section class="slide slide-dark dark-bg" aria-label="Slide 7: Lab 3"><div class="slide-content"><span class="eyebrow">Lab 3 · 55 min · Domains 3 and 4</span><h2>Governed retrieval with AI Search</h2><div class="accent-line"></div><div class="two-col"><div><h3>Goal</h3><p>Chunk, index, filter by authority, fix a stale index.</p><h3 style="margin-top:1rem">Steps</h3><ol style="padding-left:1.3rem"><li>Chunk with stable ids</li><li>Create a triggered index</li><li>Add status and region filters</li><li>Fix staleness the minimal way</li></ol></div><div><h3>You are done when</h3><p>Governed search returns only current, regional documents.</p></div></div><div class="lab-meta"><span class="tag teal">pip install databricks-ai-search</span><span class="tag lava">Index creation takes minutes</span></div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>7</span></div><aside class="notes">Package and client names are illustrative: databricks-ai-search 0.81, AISearchClient (VectorSearchClient is an alias). Each notebook installs its own pinned packages; the base environment ships none. Pre-create the index or run creation during the talk.</aside></section>
+<section class="slide slide-ink dark-bg" aria-label="Slide 8: Memory"><div class="slide-content"><span class="eyebrow">Part 2</span><h1>Memory</h1><div class="accent-line wide"></div><p class="lead">Use the nearest valid source.</p></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>8</span></div><aside class="notes">Introduce the idea that memory has a lifetime, and that the right store follows from it.</aside></section>
+<section class="slide slide-white" aria-label="Slide 9: Every memory has a lifetime and a home"><div class="slide-content"><span class="eyebrow">Memory lifetimes</span><h2>Every memory has a lifetime and a home</h2><div class="accent-line"></div><div class="rows three"><div class="row head"><span>Memory</span><span>Lifetime</span><span>Lives in</span></div><div class="row"><span>Current turn</span><span>One inference</span><span>The prompt</span></div><div class="row"><span>Working</span><span>Current task</span><span>Scratchpad or task state</span></div><div class="row"><span>Session</span><span>One conversation</span><span>Checkpoint</span></div><div class="row"><span>Long-term</span><span>Across sessions</span><span>Lakebase</span></div><div class="row"><span>Episodic</span><span>Prior events</span><span>Durable store with time and entity</span></div><div class="row"><span>Procedural</span><span>Standing how-to</span><span>Skills and runbooks</span></div></div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>9</span></div><aside class="notes">Rules to repeat: use the nearest valid source; do not fetch long-term memory if the answer is already in the session; do not rely on session history for what must survive sessions; resolve user intent before retrieval.</aside></section>
+<section class="slide slide-light" aria-label="Slide 10: Persist only what must survive"><div class="slide-content"><span class="eyebrow">Scratchpad or durable state</span><h2>Persist only what must survive</h2><div class="accent-line"></div><div class="card-grid cols-2"><div class="card"><span class="kicker">Scratchpad when</span><h3>Temporary, small, local</h3><p>Safe to lose. Never audited. Dies with the process.</p></div><div class="card"><span class="kicker">Durable state when</span><h3>It must survive</h3><p>A restart, a session boundary, or a second worker. Or it must be auditable.</p></div></div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>10</span></div><aside class="notes">Exam pattern: identify when a Delta or Lakebase-backed state object is required over an in-context scratchpad for a multi-step task. Over-retrieval pollutes context; under-retrieval misses history.</aside></section>
+<section class="slide slide-dark dark-bg" aria-label="Slide 11: Lab 4"><div class="slide-content"><span class="eyebrow">Lab 4 · 45 min · Domain 4</span><h2>Survive a restart</h2><div class="accent-line"></div><div class="two-col"><div><h3>Goal</h3><p>Checkpoint, pause for approval, resume after a restart.</p><h3 style="margin-top:1rem">Steps</h3><ol style="padding-left:1.3rem"><li>Connect with a short-lived credential</li><li>Build the graph with a checkpointer</li><li>Discard everything, rebuild, resume</li></ol></div><div><h3>You are done when</h3><p>Earlier steps do not run again.</p></div></div><div class="lab-meta"><span class="tag teal">AsyncPostgresSaver</span><span class="tag lava">await checkpointer.setup()</span></div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>11</span></div><aside class="notes">Headline moment: learners discard the pool, checkpointer and graph, rebuild from scratch, resume with the same thread id, and the earlier nodes do not re-run. Pin psycopg 3.2.13: the 3.3.x binary wheel aborts at import on serverless environments 3 and 4. Biggest risk: per-learner Postgres roles; follow the provisioning runbook.</aside></section>
+<section class="slide slide-light" aria-label="Slide 12: A document can poison context without giving orders"><div class="slide-content"><span class="eyebrow">Demo · 15 min</span><h2>A document can poison context without giving orders</h2><div class="accent-line"></div><p class="lead">All three are marked current, so a status filter lets them through.</p><div class="card-grid cols-3"><div class="card"><span class="kicker">Obvious injection</span><h3>Says: ignore previous instructions</h3><p>Easy to spot with a scanner.</p></div><div class="card"><span class="kicker">Stealth directive</span><h3>Policy-sounding, no markers</h3><p>A scanner finds nothing to match.</p></div><div class="card"><span class="kicker">Poisoned fact</span><h3>A false claim, no instruction</h3><p>Looks like an amendment to the rule.</p></div></div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>12</span></div><aside class="notes">Lab 3b. One authoritative chunk says a witness is required for 33kV isolations in NSW. Three hostile chunks from an external email origin try to undo that. Ask the room to predict before you show results. Most people over-predict how often the model obeys.</aside></section>
+<section class="slide slide-dark dark-bg" aria-label="Slide 13: Only controlling what may enter context worked"><div class="slide-content"><span class="eyebrow">Measured · poisoned fact · 5 trials per row</span><h2>Only controlling what may enter context worked</h2><div class="accent-line"></div><div class="hbars"><div class="hbar hot"><span class="lbl">No defence</span><div class="track"><div class="fill" style="--w:0%"></div></div><span class="val">0%</span></div><div class="hbar hot"><span class="lbl">Evidence declared as data</span><div class="track"><div class="fill" style="--w:0%"></div></div><span class="val">0%</span></div><div class="hbar hot"><span class="lbl">Plus keyword scan</span><div class="track"><div class="fill" style="--w:0%"></div></div><span class="val">0%</span></div><div class="hbar good"><span class="lbl">Plus provenance gate</span><div class="track"><div class="fill" style="--w:100%"></div></div><span class="val">100%</span></div></div><p class="caption">Share of clean answers. The model rarely obeyed; the harm was contamination: a clear rule became "the evidence conflicts". One model, small samples. Report your own numbers.</p></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>13</span></div><aside class="notes">Clean means the answer says a witness is required and does not surface the hostile document as a competing authority. The model was compromised in 1 of 60 trials with no defence; the damage was ambiguity. Delimiting evidence and keyword scanning did not help the stealth or poisoned-fact cases. A provenance gate on an ingestion-time origin field gave clean answers in 15 of 15. The measure is a regex and over-counts; have learners read the printed answers.</aside></section>
+<section class="slide slide-light" aria-label="Slide 14: A good tool says when not to use it"><div class="slide-content"><span class="eyebrow">Tool design</span><h2>A good tool says when not to use it</h2><div class="accent-line"></div><div class="card-grid cols-4"><div class="card"><span class="kicker">Name</span><h3>Distinct, action-oriented</h3><p>Not four ways to say get order.</p></div><div class="card"><span class="kicker">Scope</span><h3>One narrow job</h3><p>Least-privilege access.</p></div><div class="card"><span class="kicker">Contract</span><h3>Typed in, compact out</h3><p>Predictable errors.</p></div><div class="card"><span class="kicker">Effects</span><h3>Explicit and idempotent</h3><p>Safe to retry.</p></div></div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>14</span></div><aside class="notes">Exercise: four near-identical tools. Consolidate them and write use and avoid-use conditions. Adapt to GridWorks: get_work_order, fetch_work_order, lookup_work_order_details, work_order_info. Agent Skills: move rarely used capability instructions out of the always-on prompt; keep safety and core routing in.</aside></section>
+<section class="slide slide-white" aria-label="Slide 15: Load one schema, not sixty"><div class="slide-content"><span class="eyebrow">Progressive disclosure</span><h2>Load one schema, not sixty</h2><div class="accent-line"></div><p class="lead">Do not load every schema and rank afterwards: the token and confusion cost is already paid.</p><div class="flow"><div class="step"><b>01</b><span>Show capability summaries</span></div><div class="step"><b>02</b><span>Match the user's intent</span></div><div class="step"><b>03</b><span>Load the best-fit schema only</span></div><div class="step"><b>04</b><span>Execute</span></div><div class="step"><b>05</b><span>Return only next-step fields</span></div><div class="step"><b>06</b><span>Clear raw output once facts are saved</span></div></div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>15</span></div><aside class="notes">Exam: staged discovery reduces tokens compared with raw tool dumps. For MCP on Apps, a three-layer discovery, planning and execution server with governed connections and compact responses.</aside></section>
+<section class="slide slide-light" aria-label="Slide 16: A summary must keep what the task needs"><div class="slide-content"><span class="eyebrow">Compaction</span><h2>A summary must keep what the task needs</h2><div class="accent-line"></div><div class="two-col"><div><h3>Keep</h3><ul><li>Goal and status</li><li>User constraints and exclusions</li><li>Decisions and needed rationale</li><li>Facts with source ids</li><li>Open work and next action</li></ul></div><div><h3>Drop</h3><ul><li>Duplicate tool payloads</li><li>Verbose logs</li><li>Superseded candidates</li><li><b>Hidden reasoning</b>: never keep it</li></ul></div></div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>16</span></div><aside class="notes">Recall before precision: first make every task-critical category survive, then remove duplication. Compare trimming, sliding window, structured compaction and externalised state. The Lab 6 code strips reasoning blocks for exactly this reason.</aside></section>
+<section class="slide slide-ink dark-bg" aria-label="Slide 17: The exam pattern"><div class="slide-content"><span class="eyebrow">The exam pattern</span><div class="pull-quote">Later recommendations contradict earlier decisions? The summary lost the user's constraints.</div></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>17</span></div><aside class="notes">The fix is a deduplicated list of constraints, exclusions and preferences, not appending every message, every tool output, or the model's reasoning. Run one trace-surgery exercise from your own examples if time allows.</aside></section>
+<section class="slide slide-dark dark-bg texture-noise" aria-label="Slide 18: Before Session 3"><div class="slide-content"><div class="logo-row"><svg class="db-logo" viewBox="0 0 713 113" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Databricks">
+<g clip-path="url(#clip0_on_dark)">
+<path d="M98.9 46.5996L52.3 72.8996L2.4 44.7996L0 46.0996V66.4996L52.3 95.8996L98.9 69.6996V80.4996L52.3 106.8L2.4 78.6996L0 79.9996V83.4996L52.3 112.9L104.5 83.4996V63.0996L102.1 61.7996L52.3 89.7996L5.6 63.5996V52.7996L52.3 78.9996L104.5 49.5996V29.4996L101.9 27.9996L52.3 55.8996L8 31.0996L52.3 6.19961L88.7 26.6996L91.9 24.8996V22.3996L52.3 0.0996094L0 29.4996V32.6996L52.3 62.0996L98.9 35.7996V46.5996Z" fill="#FF3621"/>
+<path d="M202.2 96.1994V6.39941H188.4V39.9994C188.4 40.4994 188.1 40.8994 187.6 41.0994C187.1 41.2994 186.6 41.0994 186.3 40.7994C181.6 35.2994 174.3 32.1994 166.3 32.1994C149.2 32.1994 135.8 46.5994 135.8 64.9994C135.8 73.9994 138.9 82.2994 144.6 88.3994C150.3 94.4994 158 97.7994 166.3 97.7994C174.2 97.7994 181.5 94.4994 186.3 88.7994C186.6 88.3994 187.2 88.2994 187.6 88.3994C188.1 88.5994 188.4 88.9994 188.4 89.4994V96.1994H202.2ZM169.3 85.2994C158.3 85.2994 149.7 76.3994 149.7 64.9994C149.7 53.5994 158.3 44.6994 169.3 44.6994C180.3 44.6994 188.9 53.5994 188.9 64.9994C188.9 76.3994 180.3 85.2994 169.3 85.2994Z" fill="white"/>
+<path d="M276 96.0996V33.6996H262.3V39.9996C262.3 40.4996 262 40.8996 261.5 41.0996C261 41.2996 260.5 41.0996 260.2 40.6996C255.6 35.1996 248.4 32.0996 240.2 32.0996C223.1 32.0996 209.7 46.4996 209.7 64.8996C209.7 83.2996 223.1 97.6996 240.2 97.6996C248.1 97.6996 255.4 94.3996 260.2 88.5996C260.5 88.1996 261.1 88.0996 261.5 88.1996C262 88.3996 262.3 88.7996 262.3 89.2996V96.0996H276ZM243.3 85.2996C232.3 85.2996 223.7 76.3996 223.7 64.9996C223.7 53.5996 232.3 44.6996 243.3 44.6996C254.3 44.6996 262.9 53.5996 262.9 64.9996C262.9 76.3996 254.3 85.2996 243.3 85.2996Z" fill="white"/>
+<path d="M314.4 97.1994C318.8 97.1994 322.7 96.7994 324.9 96.4994V84.4994C323.1 84.6994 319.9 84.8994 318 84.8994C312.4 84.8994 308.1 83.8994 308.1 71.7994V46.0994C308.1 45.3994 308.6 44.8994 309.3 44.8994H322.8V33.5994H309.3C308.6 33.5994 308.1 33.0994 308.1 32.3994V14.3994H294.3V32.4994C294.3 33.1994 293.8 33.6994 293.1 33.6994H283.5V44.9994H293.1C293.8 44.9994 294.3 45.4994 294.3 46.1994V75.2994C294.3 97.1994 308.9 97.1994 314.4 97.1994Z" fill="white"/>
+<path d="M393.3 96.1996V33.6996H379.6V39.9996C379.6 40.4996 379.3 40.8996 378.8 41.0996C378.3 41.2996 377.8 41.0996 377.5 40.6996C372.9 35.1996 365.7 32.0996 357.5 32.0996C340.3 32.0996 327 46.4996 327 64.9996C327 83.4996 340.4 97.7996 357.5 97.7996C365.4 97.7996 372.7 94.4996 377.5 88.6996C377.8 88.2996 378.4 88.1996 378.8 88.2996C379.3 88.4996 379.6 88.8996 379.6 89.3996V96.1996H393.3ZM360.6 85.2996C349.6 85.2996 341 76.3996 341 64.9996C341 53.5996 349.6 44.6996 360.6 44.6996C371.6 44.6996 380.2 53.5996 380.2 64.9996C380.2 76.3996 371.6 85.2996 360.6 85.2996Z" fill="white"/>
+<path d="M418.4 88.7994C418.5 88.7994 418.7 88.6994 418.8 88.6994C419.1 88.6994 419.5 88.8994 419.7 89.0994C424.4 94.5994 431.7 97.6994 439.7 97.6994C456.8 97.6994 470.2 83.2994 470.2 64.8994C470.2 55.8994 467.1 47.5994 461.4 41.4994C455.7 35.3994 448 32.0994 439.7 32.0994C431.8 32.0994 424.5 35.3994 419.7 41.0994C419.4 41.4994 418.9 41.5994 418.4 41.4994C417.9 41.2994 417.6 40.8994 417.6 40.3994V6.39941H403.8V96.1994H417.6V89.8994C417.6 89.3994 417.9 88.9994 418.4 88.7994ZM417 64.9994C417 53.5994 425.6 44.6994 436.6 44.6994C447.6 44.6994 456.2 53.5994 456.2 64.9994C456.2 76.3994 447.6 85.2994 436.6 85.2994C425.6 85.2994 417 76.2994 417 64.9994Z" fill="white"/>
+<path d="M510.1 46.4994C511.4 46.4994 512.6 46.5994 513.4 46.7994V32.5994C512.9 32.4994 512 32.3994 511.1 32.3994C503.9 32.3994 497.3 36.0994 493.8 41.9994C493.5 42.4994 493 42.6994 492.5 42.4994C492 42.3994 491.6 41.8994 491.6 41.3994V33.6994H477.9V96.2994H491.7V68.6994C491.7 54.9994 498.7 46.4994 510.1 46.4994Z" fill="white"/>
+<path d="M536.1 33.6992H522.1V96.2992H536.1V33.6992Z" fill="white"/>
+<path d="M528.9 6.49902C524.2 6.49902 520.4 10.299 520.4 14.999C520.4 19.699 524.2 23.499 528.9 23.499C533.6 23.499 537.4 19.699 537.4 14.999C537.4 10.299 533.6 6.49902 528.9 6.49902Z" fill="white"/>
+<path d="M577.1 32.0996C557.9 32.0996 544 45.8996 544 64.9996C544 74.2996 547.3 82.5996 553.2 88.5996C559.2 94.5996 567.6 97.8996 577 97.8996C584.8 97.8996 590.8 96.3996 602.2 87.9996L594.3 79.6996C588.7 83.3996 583.5 85.1996 578.4 85.1996C566.8 85.1996 558.1 76.4996 558.1 64.9996C558.1 53.4996 566.8 44.7996 578.4 44.7996C583.9 44.7996 589 46.5996 594.1 50.2996L602.9 41.9996C592.6 33.1996 583.3 32.0996 577.1 32.0996Z" fill="white"/>
+<path d="M626.5 68.699C626.7 68.499 627 68.399 627.3 68.399H627.4C627.7 68.399 628 68.599 628.3 68.799L650.4 96.199H667.4L638.8 61.599C638.4 61.099 638.4 60.399 638.9 59.999L665.2 33.699H648.3L625.6 56.499C625.3 56.799 624.8 56.899 624.3 56.799C623.9 56.599 623.6 56.199 623.6 55.699V6.49902H609.7V96.299H623.5V71.899C623.5 71.599 623.6 71.199 623.9 70.999L626.5 68.699Z" fill="white"/>
+<path d="M689.9 97.799C701.2 97.799 712.7 90.899 712.7 77.799C712.7 69.199 707.3 63.299 696.3 59.699L688.8 57.199C683.7 55.499 681.3 53.099 681.3 49.799C681.3 45.999 684.7 43.399 689.5 43.399C694.1 43.399 698.2 46.399 700.8 51.599L711.9 45.599C707.8 37.199 699.3 31.999 689.5 31.999C677.1 31.999 668.1 39.999 668.1 50.899C668.1 59.599 673.3 65.399 684 68.799L691.7 71.299C697.1 72.999 699.4 75.199 699.4 78.699C699.4 83.999 694.5 85.899 690.3 85.899C684.7 85.899 679.7 82.299 677.3 76.399L666 82.399C669.7 91.899 678.8 97.799 689.9 97.799Z" fill="white"/>
+</g>
+<defs><clipPath id="clip0_on_dark"><rect width="712.8" height="113" fill="white"/></clipPath></defs>
+</svg></div><span class="eyebrow">Next</span><h2>Before Session 3</h2><div class="accent-line"></div><ul class="checklist"><li>Finish Labs 3 and 4, or run the solutions</li><li>Write one tool description with an avoid-use line</li><li>Think of an action your agent takes that needs a human</li></ul></div><div class="slide-footer"><span>Context Engineering on Databricks · Session 2 · Retrieval, memory, tools, compaction</span><span>18</span></div><aside class="notes">Session 3 covers multi-agent design, the gateway, the app, and evaluation. Remind everyone to use serverless environment 4.</aside></section>
+<div id="notes" role="region" aria-label="Speaker notes"><h5>Speaker notes (press N to hide)</h5><p></p></div>
+<script>
+class SlidePresentation {
+  constructor() {
+    this.slides = document.querySelectorAll('.slide'); this.progressBar = document.querySelector('.progress-bar');
+    this.navDots = document.querySelector('.nav-dots'); this.notes = document.getElementById('notes'); this.currentSlide = 0; this.init();
+  }
+  init() { this.createNavDots(); this.setupObserver(); this.setupKeys(); this.setupTouch(); this.setupWheel(); this.updateProgress(); }
+  createNavDots() { this.slides.forEach((_, i) => { const d = document.createElement('button'); d.className = 'nav-dot' + (i === 0 ? ' active' : ''); d.setAttribute('aria-label', 'Go to slide ' + (i + 1)); d.addEventListener('click', () => this.goTo(i)); this.navDots.appendChild(d); }); }
+  setupObserver() { const o = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { this.currentSlide = [...this.slides].indexOf(e.target); this.updateDots(); this.updateProgress(); this.updateNotes(); } }); }, { threshold: 0.5 }); this.slides.forEach(s => o.observe(s)); }
+  setupKeys() { document.addEventListener('keydown', (e) => {
+    if (['ArrowDown', 'ArrowRight', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); this.goTo(this.currentSlide + 1); }
+    else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); this.goTo(this.currentSlide - 1); }
+    else if (e.key === 'Home') { this.goTo(0); } else if (e.key === 'End') { this.goTo(this.slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { this.notes.classList.toggle('on'); this.updateNotes(); } }); }
+  setupTouch() { let y = 0; document.addEventListener('touchstart', e => { y = e.touches[0].clientY; }, { passive: true }); document.addEventListener('touchend', e => { const d = y - e.changedTouches[0].clientY; if (Math.abs(d) > 50) this.goTo(this.currentSlide + (d > 0 ? 1 : -1)); }, { passive: true }); }
+  setupWheel() { let last = 0; document.addEventListener('wheel', e => { const t = Date.now(); if (t - last < 800) return; last = t; this.goTo(this.currentSlide + (e.deltaY > 0 ? 1 : -1)); }, { passive: true }); }
+  goTo(i) { const t = Math.max(0, Math.min(i, this.slides.length - 1)); this.slides[t].scrollIntoView({ behavior: 'instant' }); }
+  updateDots() { this.navDots.querySelectorAll('.nav-dot').forEach((d, i) => d.classList.toggle('active', i === this.currentSlide)); }
+  updateProgress() { const p = ((this.currentSlide + 1) / this.slides.length) * 100; this.progressBar.style.width = p + '%'; this.progressBar.setAttribute('aria-valuenow', Math.round(p)); }
+  updateNotes() { const n = this.slides[this.currentSlide].querySelector('aside.notes'); this.notes.querySelector('p').textContent = n ? n.textContent : '(no notes for this slide)'; }
+}
+new SlidePresentation();
+</script>
+</body>
+</html>

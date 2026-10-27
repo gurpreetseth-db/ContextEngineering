@@ -1,0 +1,21 @@
+/* Accessibility overrides (AA contrast for SMALL text). Brand Lava #FF3621 stays for large display text,
+   accent lines and big numbers; small red text uses a darker red on light and a lighter coral on dark. */
+.eyebrow, .card .kicker, .flow .step b { color: #C92A16; }
+.dark-bg .eyebrow, .dark-bg .card .kicker, .dark-bg .flow .step b { color: #FF8C7A; }
+.tag.lava { color: #A81F0E; }
+.dark-bg .tag.lava { color: #FF9A8B; }
+.slide-footer { color: rgba(11, 32, 38, 0.72); }
+.dark-bg .slide-footer { color: rgba(255, 255, 255, 0.72); }
+.note-tag, .caption { color: #3F545E; }
+.dark-bg .note-tag, .dark-bg .caption { color: rgba(255, 255, 255, 0.78); }
+
+/* List geometry: keep bullets inside the content edge */
+.slide-content ul, .slide-content ol { padding-left: 1.25rem; }
+.slide-content ul { list-style: disc; } .slide-content ol { list-style: decimal; }
+.slide-content ul.checklist { list-style: none; padding-left: 0; }
+.slide-content li + li { margin-top: 0.3rem; }
+
+/* Labelled big numbers: every figure says what it is */
+.stat-col { display: flex; flex-direction: column; gap: 0.35rem; }
+.stat-col .sub { font-family: var(--font-mono); font-size: clamp(0.8rem, 1vw, 1.2rem); letter-spacing: 0.04em; text-transform: uppercase; color: #3F545E; max-width: 22ch; line-height: 1.35; }
+.dark-bg .stat-col .sub { color: rgba(255,255,255,0.78); }

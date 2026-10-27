@@ -1,0 +1,71 @@
+bundle:
+  name: ce-gridworks-assistant
+
+variables:
+  vector_search_index_id:
+    description: Three-level UC name of the default index (catalog.schema.index_name)
+  sql_warehouse_id:
+    description: SQL Warehouse ID
+  postgres_branch:
+    description: Full Lakebase Postgres branch resource name. Obtain by running `databricks postgres list-branches {project-name}`, select the desired item from the output array and use its .name value. Requires the project resource name.
+  postgres_database:
+    description: Full Lakebase Postgres database resource name. Obtain by running `databricks postgres list-databases {branch-name}`, select the desired item from the output array and use its .name value. Requires the branch resource name.
+
+resources:
+  apps:
+    app:
+      name: "ce-gridworks-assistant"
+      description: "ANZ GridWorks operations assistant: Context Engineering Lab 5 (governed retrieval, durable memory, approval gate)"
+      source_code_path: ./
+
+      # Start the app automatically on deploy.
+      lifecycle:
+        started: true
+      # Uncomment to enable on behalf of user API scopes. Available scopes: sql, genie, files, model-serving
+      # user_api_scopes:
+      #   - sql
+
+      # The resources which this app has access to.
+      resources:
+        - name: vector-search-index
+          uc_securable:
+            securable_full_name: ${var.vector_search_index_id}
+            securable_type: TABLE
+            permission: SELECT
+        # Least privilege: the KPI panel reads CERTIFIED gold tables only. raw_*, draft_*, derived_* are never granted.
+        - name: gold-work-orders
+          uc_securable:
+            securable_full_name: gsethi.ce_shared.gold_work_orders
+            securable_type: TABLE
+            permission: SELECT
+        - name: gold-asset-health
+          uc_securable:
+            securable_full_name: gsethi.ce_shared.gold_asset_health
+            securable_type: TABLE
+            permission: SELECT
+        - name: gold-outage-events
+          uc_securable:
+            securable_full_name: gsethi.ce_shared.gold_outage_events
+            securable_type: TABLE
+            permission: SELECT
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.sql_warehouse_id}
+            permission: CAN_USE
+        - name: postgres
+          postgres:
+            branch: ${var.postgres_branch}
+            database: ${var.postgres_database}
+            permission: CAN_CONNECT_AND_CREATE
+
+targets:
+  default:
+    default: true
+    workspace:
+      host: https://<your-workspace>.cloud.databricks.com   # replace before deploying
+
+    variables:
+      vector_search_index_id: <catalog>.<schema>.doc_chunks_merged_index   # the index built in Lab 3
+      sql_warehouse_id: <warehouse-id>
+      postgres_branch: projects/ce-enablement/branches/production
+      postgres_database: projects/ce-enablement/branches/production/databases/databricks-postgres
